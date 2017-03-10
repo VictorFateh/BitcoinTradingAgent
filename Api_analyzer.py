@@ -24,9 +24,9 @@ def query_ticker(product_code="FX_BTC_JPY"):
 
 def query_get_ticker(product_code="FX_BTC_JPY"):
     api = api_urls['get_ticker'] + get_query + product_code
-    return query_api(api_urls['get_ticker'])
+    return query_api(api)
 
 #Sample code to test functionality of query 
-while(True):
-    print(query_ticker())
+#while(True):
+#    print(query_ticker())
     
