@@ -8,19 +8,6 @@ from Api_analyzer import *
 
 import time, sys
 
-"""
-def tickerBot(prevMinute, sleepSeconds, updateInterval):
-    if(time.time() - prevMinute) < updateInterval:
-        data = json.loads(json.dumps(query_ticker()))
-        print('last trade: %0.2f' % data['ltp']) # ltp = last traded price
-        print('prevMinute: %0.2f' % prevMinute)  # would like to convert time to database timestamp format
-        time.sleep( sleepSeconds )  # to be gentle with the bandwidth
-        return prevMinute
-    else:
-        return time.time()
-"""
-
-
 
 
 
@@ -50,7 +37,8 @@ def timestamp():
 """
 
 # TODO Need to implement logic if the bot receives a null response from exchange
-# TODO Need to modify IF ELSE logic to work differently as right now there is a drift in seconds per timestamp
+# TODO Need to modify tickerBot to work with different intervals, change updateInterval to be a set of choice
+
 def tickerBot(sleepSeconds, verbose = True, updateInterval = 60):
 
     #is this needed?
@@ -68,10 +56,8 @@ def tickerBot(sleepSeconds, verbose = True, updateInterval = 60):
             print(timestamp())
         time.sleep(1)
 
-
-
     data = json.loads(json.dumps(query_get_ticker()))
-    prevMinute = time.time()
+    currentInterval = time.strftime("%M", time.gmtime())
     ohlc = {'o': data['ltp'], 'h': data['ltp'], 'l': data['ltp'], 'c': data['ltp'], 't':timestamp()}
 
     if verbose:
@@ -79,7 +65,7 @@ def tickerBot(sleepSeconds, verbose = True, updateInterval = 60):
 
     while (True):
 
-        if(time.time() - prevMinute) < updateInterval:
+        if( time.strftime("%M", time.gmtime()) == currentInterval ):
             data = json.loads(json.dumps(query_ticker()))
 
             if data['ltp'] > ohlc['h']:
@@ -94,10 +80,11 @@ def tickerBot(sleepSeconds, verbose = True, updateInterval = 60):
             time.sleep( sleepSeconds )  # to be gentle with the bandwidth
         else:
             print( json.dumps( ohlc ) )
-            ohlc = {'o': data['ltp'], 'h': data['ltp'], 'l': data['ltp'], 'c': data['ltp'], 't':timestamp()}
-            prevMinute = time.time()
 
-tickerBot(2)
+            ohlc = {'o': data['ltp'], 'h': data['ltp'], 'l': data['ltp'], 'c': data['ltp'], 't':timestamp()}
+            currentInterval = time.strftime("%M", time.gmtime())
+#uncomment to test ticker bot
+tickerBot(1)
 
 
 #TODO implement a different tickerBot that tracks the current price and the amount of time it took till the price changed. This will be more effective for backtesting?
