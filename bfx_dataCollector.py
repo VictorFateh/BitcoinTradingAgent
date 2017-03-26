@@ -11,8 +11,6 @@ Useful references
 
 
 """
-
-
 import time
 import ast #used to convert string to array
 import csv
@@ -40,11 +38,9 @@ try:
     # establish web socket object
     ws = create_connection("wss://api.bitfinex.com/ws/2/")
 
-
     print ("Initializing...")
     result =  ws.recv()
     print ("First Response -> %s" % result)
-
 
     print("\nSending Ping...")
     ws.send('{ "event": "ping" }')
@@ -94,12 +90,9 @@ try:
                 currentHour = time.strftime("%H", time.gmtime())
                 print("Time: " + currentHour + " hr")
             """
-
-
-
 except:
-    ws.close()
-    print("Something went wrong Captain...")
+    print("Something went wrong")
 
-ws.close()
-print("Web Socket connection closed...")
+finally:
+    ws.close()
+    print("closing socket connection")
