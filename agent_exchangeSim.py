@@ -1,4 +1,4 @@
-import random
+import csv, sys, ast
 #Constants
 MAKER_FEE = 0.001 # 0.1% in decimal form
 TAKER_FEE = 0.002 # 0.2% in decimal form
@@ -116,7 +116,7 @@ class OrderStack:
 
 class ExchangeSimulator:
 
-    def __init__(self):
+    def __init__(self, testData = 'bfx_2017-03-25.csv'):
         self.Agent = []
 
         self.buyOrders = OrderStack(BUY)
@@ -126,31 +126,46 @@ class ExchangeSimulator:
         self.previous_price = 0 #To avoid compiling error
         self.nearest_buy_price = None
         self.nearest_sell_price = None
+        self.nearest_buy_size = None
+        self.nearest_sell_size = None
+        self.order_id_nonce = 0
         self.deltaP = 0 #Delta Price; Track change in price, used to know which stack to check per STEP
 
         #temporarily used for simplified development testing
-        self.testData = [5,6,7,8,9,10,9,8,7,6,3,2,1,3,5,7,9,10,10,9,8]
+        #self.testData = [5,6,7,8,9,10,9,8,7,6,3,2,1,3,5,7,9,10,10,9,8]
+        self.filename = testData
+        f = open(self.filename, newline='')
+        self.percepts = csv.reader(f)
 
 
     def setAgent(self,Agent):
         self.Agent = Agent
 
     def run(self):
-        for percept in self.testData:
-            print("price: ", percept)#For debugging
+        try:
+            next(self.percepts)#skip header in csv
+            for percept in self.percepts:
+                ltp, sp, ss, bp, bs  = percept
+                print("price: ", self.current_price)#For debugging
+                self.current_price = float(ltp)
+                self.nearest_sell_price = float(sp)
+                self.nearest_sell_size = float(ss)
+                self.nearest_buy_price = float(bp)
+                self.nearest_buy_size = float(bs)
+                #self.current_price = percept # set the current price
+                #self.nearest_buy_price = self.current_price
+                #self.nearest_sell_price = self.current_price
 
-            self.current_price = percept # set the current price
-            self.nearest_buy_price = self.current_price
-            self.nearest_sell_price = self.current_price
+                self.updateDeltaPrice()
+                self.handle_QueuedOrders()
 
-            self.updateDeltaPrice()
-            self.handle_QueuedOrders()
+                request, info = self.Agent.program(self.current_price)
 
-            request, info = self.Agent.program(percept)
+                response = self.handle_AgentRequest(percept, request, info)
 
-            response = self.handle_AgentRequest(percept, request, info)
-
-            self.Agent.sees(response)
+                self.Agent.sees(response)
+        except csv.Error as e:
+            sys.exit('file {}, line {}: {}'.format(self.filename, self.percepts.line_num, e))
 
     def handle_AgentRequest(self, percept, request, info):
         if request == "BUY" or request == "SELL":
@@ -161,27 +176,50 @@ class ExchangeSimulator:
             if order.order_side == BUY:
                 # Check for sufficient funds
                 if self.Agent.usd_bal < order.amount:
-                    return False  # Order Failed
+                    return False, "Insufficient Funds"  # Order Failed
 
                 # Check if limit order can be guaranteed
                 if order.order_type == LIMIT_POST and self.current_price >= order.target_price:
-                    return False  # Order Failed
+                    return False, "Limit Post Failed"  # Order Failed
 
             elif order.order_side == SELL:
                 # Check for sufficient funds
                 if self.Agent.btc_bal < order.amount:
-                    return False  # Order Failed
+                    return False, "Insufficient Funds"  # Order Failed
 
                 # Check if limit order can be guaranteed
                 if order.order_type == LIMIT_POST and self.current_price <= order.target_price:
-                    return False # Order Failed
+                    return False, "Limit Post Failed" # Order Failed
 
+            #order validation passed, add to queue
+            order.id = self.order_id_nonce
+            self.order_id_nonce += 1
             self.queueOrder(order)
 
-            return True #Order Queued
+            if(order.order_type == MARKET):
+                return True
+            else:
+                order_data = {}
+                order_data['SIDE'] = order.order_side
+                order_data['ID'] = order.id
+                order_data['TARGET_PRICE'] = order.target_price
+                return True, order_data #Order Queued
 
         elif request == "CANCEL":
-            pass #TODO Cancel Order
+            order_side , order_id= info
+            if( order_side == BUY):
+                results , amount = self.buyOrders.cancelOrderByID( order_id )
+                if(results):
+                    self.Agent.usd_bal += amount
+            elif( order_side == SELL):
+                results, amount = self.sellOrders.cancelOrderByID( order_id )
+                if(results):
+                    self.Agent.btc_bal += amount
+            return results, order_side, order_id;
+
+
+
+
 
         return None
 
@@ -269,13 +307,15 @@ class ExchangeSimulator:
     """
     def printAgentBalance(self):
         print("btc: ", self.Agent.btc_bal)
-        print("usd: ", self.Agent.usd_bal)
+        print("usd: $", self.Agent.usd_bal)
+        print("value: $", round(self.Agent.btc_bal * self.current_price + self.Agent.usd_bal, 8))
 
     def executeBuyMarketOrder(self, order):
         print("EXCHANGE - executeBuyMarketOrder @ ", self.nearest_buy_price)
         fee = order.amount * TAKER_FEE
         order.amount -= fee
         self.Agent.btc_bal += order.amount / self.nearest_buy_price
+        self.Agent.btc_bal = round(self.Agent.btc_bal,8)
         self.printAgentBalance()
 
     def executeSellMarketOrder(self, order):
@@ -283,6 +323,7 @@ class ExchangeSimulator:
         fee = order.amount * TAKER_FEE
         order.amount -= fee
         self.Agent.usd_bal += order.amount * self.nearest_sell_price
+        self.Agent.usd_bal = round(self.Agent.usd_bal, 8)
         self.printAgentBalance()
 
     def executeBuyLimitOrder(self, order):
@@ -290,6 +331,7 @@ class ExchangeSimulator:
         fee = order.amount * MAKER_FEE
         order.amount -= fee
         self.Agent.btc_bal += order.amount / order.target_price
+        self.Agent.btc_bal = round(self.Agent.btc_bal, 8)
         self.printAgentBalance()
 
     def executeSellLimitOrder(self, order):
@@ -297,6 +339,7 @@ class ExchangeSimulator:
         fee = order.amount * MAKER_FEE
         order.amount -= fee
         self.Agent.usd_bal += order.amount * order.target_price
+        self.Agent.usd_bal = round(self.Agent.usd_bal, 8)
         self.printAgentBalance()
 
 
@@ -375,7 +418,7 @@ class TestAgent_marketOrdersOnly():
 
     def sees(self,response):
         if response:
-            print("AGENT - exchange received order :-)")
+            print("AGENT - received response: ", response)
 
 
     def findNewDelta(self, currentP):
@@ -402,6 +445,7 @@ class TestAgent_limitOrdersOnly():
         self.usd_bal = usd_bal
         self.deltaP = 0
         self.previousP = None
+        self.previousOrder = {}
 
     def program(self, percept):
         last_price = percept
@@ -426,7 +470,10 @@ class TestAgent_limitOrdersOnly():
 
     def sees(self,response):
         if response:
-            print("AGENT - exchange received order :-)")
+            print("AGENT - received response: ", response)
+            boolean, order = response
+            self.previousOrder = order
+            print("AGENT - Saved: ", self.previousOrder)
 
 
     def findNewDelta(self, currentP):

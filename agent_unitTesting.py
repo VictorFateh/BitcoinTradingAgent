@@ -57,6 +57,7 @@ print("btc:", 1)
 print("usd:",0)
 e.run()
 
+"""
 a_l = TestAgent_limitOrdersOnly()
 e_ = ExchangeSimulator()
 e.setAgent(a_l)
@@ -66,3 +67,4 @@ print("Agent starts out with 1 btc and 0 usd")
 print("btc:", 1)
 print("usd:",0)
 e.run()
+"""
