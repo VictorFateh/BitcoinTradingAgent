@@ -1,1 +1,2 @@
-#NOTE: Code will only work with Python 3
+#NOTE: Using Python 3.6
+
