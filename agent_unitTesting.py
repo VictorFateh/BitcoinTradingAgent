@@ -46,7 +46,7 @@ print("\nPopping from top of stack, should delete 9")
 stackS.popOrder()
 stackS.printTest()
 
-
+"""
 a_m = TestAgent_marketOrdersOnly()
 e = ExchangeSimulator()
 e.setAgent(a_m)
@@ -56,6 +56,7 @@ print("Agent starts out with 1 btc and 0 usd")
 print("btc:", 1)
 print("usd:",0)
 e.run()
+"""
 
 """
 a_l = TestAgent_limitOrdersOnly()
@@ -68,3 +69,50 @@ print("btc:", 1)
 print("usd:",0)
 e.run()
 """
+
+class emaMax:
+    def __init__(self):
+        self.percentage = 0
+        self.ema_short = None
+        self.ema_long = None
+        self.start_bal = None
+        self.end_bal = None
+
+    def apple(self,input_array):
+
+        percentage, ema_short, ema_long, start_bal, end_bal = input_array
+
+        if(percentage > self.percentage):
+            self.percentage = percentage
+            self.ema_short = ema_short
+            self.ema_long = ema_long
+            self.start_bal = start_bal
+            self.end_bal = end_bal
+
+    def results(self):
+        print("EMA Short:", self.ema_short)
+        print("EMA Long:", self.ema_long)
+        print("Result %:", self.percentage)
+        print("Start Balance: $",self.start_bal)
+        print("Final Balance: $",self.end_bal)
+
+
+m = emaMax()
+short = 1
+long = 200
+while(long >= 2):
+    while(short < long):
+        a = EMAAgent_marketOrdersOnly(short,long)
+        e = ExchangeSimulator()
+        e.setAgent(a)
+        #print("\nRunning Exchange Simulation Testbench")
+        e.run()
+        x = e.returnFinalResults()
+        m.apple( x )
+        short+=1
+    print("long: ",long)
+    long -= 1
+    short = 1
+
+print("emaMAX")
+m.results()

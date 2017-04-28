@@ -7,7 +7,6 @@ style.use('ggplot')
 #style.use('dark_background')
 
 
-
 df = pd.read_csv('bfx_2017-03-25.csv')
 #df["mean"] = df["last_price"]
 
@@ -18,7 +17,7 @@ class Ema():
         self.period = period
         self.counter = 1
         self.multiplier = (2/(period+1))
-        print("multiplier: ",self.multiplier)
+        ##print("multiplier: ",self.multiplier)
         self.previousEMA = 0
         self.average = 0
 
@@ -30,7 +29,7 @@ class Ema():
             self.average += current
             self.average = self.average / self.period
             self.counter += 1
-            print("average: ",self.average)
+            ##print("average: ",self.average)
             self.previousEMA = self.average
 
     def ema(self,current):
@@ -62,6 +61,54 @@ class Diff:
     def diff(self,current):
         self.alert(current)
         return self.short.ema(current) - self.long.ema(current)
+
+class EMA_Cross_Strategy:
+    def __init__(self,short,long):
+        self.short = Ema(short)
+        self.long = Ema(long)
+        self.prev = None
+        self.init_counter = 1
+        self.start_counter = long
+        self.start_evaluate = False
+
+    def calculate(self,current):
+        if(self.prev == None):
+            self.prev = current
+
+        areaDiff = self.short.ema(current) - self.long.ema(current)
+        if(self.start_evaluate == False and self.init_counter <= self.start_counter):
+            self.init_counter += 1
+            if(self.init_counter == self.start_counter):
+                self.start_evaluate = True
+
+        signal = None
+
+        if( self.start_evaluate ):
+            if(self.prev < 0 and areaDiff > 0):
+                signal = 'BUY'
+            elif(self.prev > 0 and areaDiff < 0):
+                signal = 'SELL'
+            self.prev = areaDiff
+
+        return signal
+
+
+
+
+
+    def evaluate(self,current):
+        signal = self.calculate(current)
+        return signal
+
+
+
+
+
+
+
+
+
+
 
 def apple():
     data = [22.27,22.19,22.08,22.17,22.18,22.13,22.23,22.43,22.24,22.29,22.15,22.39,22.38,22.61,23.36,24.05,23.75,23.83,23.95,23.63,23.82,23.87,23.65,23.19,23.10,23.33,22.68,23.10,22.40,22.17]
@@ -128,6 +175,6 @@ def show_ema_v2():
 
 #show_partitioned_example()
 #show_ema_example()
-show_ema_v2()
+#show_ema_v2()
 #apple()
 

@@ -1,4 +1,5 @@
 import csv, sys, ast
+from ema import *
 #Constants
 MAKER_FEE = 0.001 # 0.1% in decimal form
 TAKER_FEE = 0.002 # 0.2% in decimal form
@@ -131,6 +132,8 @@ class ExchangeSimulator:
         self.order_id_nonce = 0
         self.deltaP = 0 #Delta Price; Track change in price, used to know which stack to check per STEP
 
+        self.initial = None
+
         #temporarily used for simplified development testing
         #self.testData = [5,6,7,8,9,10,9,8,7,6,3,2,1,3,5,7,9,10,10,9,8]
         self.filename = testData
@@ -146,7 +149,7 @@ class ExchangeSimulator:
             next(self.percepts)#skip header in csv
             for percept in self.percepts:
                 ltp, sp, ss, bp, bs  = percept
-                print("price: ", self.current_price)#For debugging
+                #print("price: ", self.current_price)#For debugging
                 self.current_price = float(ltp)
                 self.nearest_sell_price = float(sp)
                 self.nearest_sell_size = float(ss)
@@ -155,6 +158,8 @@ class ExchangeSimulator:
                 #self.current_price = percept # set the current price
                 #self.nearest_buy_price = self.current_price
                 #self.nearest_sell_price = self.current_price
+                if(self.initial == None):
+                    self.initial = self.current_price
 
                 self.updateDeltaPrice()
                 self.handle_QueuedOrders()
@@ -164,12 +169,15 @@ class ExchangeSimulator:
                 response = self.handle_AgentRequest(percept, request, info)
 
                 self.Agent.sees(response)
+
+            #self.printFinalResults()
+
         except csv.Error as e:
             sys.exit('file {}, line {}: {}'.format(self.filename, self.percepts.line_num, e))
 
     def handle_AgentRequest(self, percept, request, info):
         if request == "BUY" or request == "SELL":
-            print("EXCHANGE - got it!")#For debugging
+            ##print("EXCHANGE - got it!")#For debugging
             order = info
 
 
@@ -305,59 +313,74 @@ class ExchangeSimulator:
 
         return None
     """
+    def returnFinalResults(self):
+        finalValue = round(self.Agent.btc_bal * self.current_price + self.Agent.usd_bal, 8)
+        results = finalValue / self.initial
+        a = [round(results*100-100,2),self.Agent.ema_short,self.Agent.ema_long,self.initial,round(finalValue,2)]
+        return a
+
+    def printFinalResults(self):
+        finalValue = round(self.Agent.btc_bal * self.current_price + self.Agent.usd_bal, 8)
+        results = finalValue / self.initial
+        print("EMA Short:", self.Agent.ema_short)
+        print("EMA Long:", self.Agent.ema_long)
+        print("Result %:", round(results*100-100,2))
+        print("Start Balance: $",self.initial)
+        print("Final Balance: $",round(finalValue,2))
+
     def printAgentBalance(self):
         print("btc: ", self.Agent.btc_bal)
         print("usd: $", self.Agent.usd_bal)
         print("value: $", round(self.Agent.btc_bal * self.current_price + self.Agent.usd_bal, 8))
 
     def executeBuyMarketOrder(self, order):
-        print("EXCHANGE - executeBuyMarketOrder @ ", self.nearest_buy_price)
+        ##print("EXCHANGE - executeBuyMarketOrder @ ", self.nearest_buy_price)
         fee = order.amount * TAKER_FEE
         order.amount -= fee
         self.Agent.btc_bal += order.amount / self.nearest_buy_price
         self.Agent.btc_bal = round(self.Agent.btc_bal,8)
-        self.printAgentBalance()
+        ##self.printAgentBalance()
 
     def executeSellMarketOrder(self, order):
-        print("EXCHANGE - executeSellMarketOrder @ ", self.nearest_sell_price)
+        ##print("EXCHANGE - executeSellMarketOrder @ ", self.nearest_sell_price)
         fee = order.amount * TAKER_FEE
         order.amount -= fee
         self.Agent.usd_bal += order.amount * self.nearest_sell_price
         self.Agent.usd_bal = round(self.Agent.usd_bal, 8)
-        self.printAgentBalance()
+        ##self.printAgentBalance()
 
     def executeBuyLimitOrder(self, order):
-        print("EXCHANGE - executeBuyLimitOrder @ ", order.target_price)
+       ##print("EXCHANGE - executeBuyLimitOrder @ ", order.target_price)
         fee = order.amount * MAKER_FEE
         order.amount -= fee
         self.Agent.btc_bal += order.amount / order.target_price
         self.Agent.btc_bal = round(self.Agent.btc_bal, 8)
-        self.printAgentBalance()
+        ##self.printAgentBalance()
 
     def executeSellLimitOrder(self, order):
-        print("EXCHANGE - executeSellLimitOrder @ ", order.target_price)
+        ##print("EXCHANGE - executeSellLimitOrder @ ", order.target_price)
         fee = order.amount * MAKER_FEE
         order.amount -= fee
         self.Agent.usd_bal += order.amount * order.target_price
         self.Agent.usd_bal = round(self.Agent.usd_bal, 8)
-        self.printAgentBalance()
+        ##self.printAgentBalance()
 
 
     def executeOrderCalcNewBalance(self, percept, order):
-        print("calc_new_balance")#For debugging
+        ##print("calc_new_balance")#For debugging
         last_price = percept
         btc_bal = None
         usd_bal = None
         if order.order_side == BUY:
             btc_bal = order.amount / last_price
-            print("btc: ", btc_bal) #For debugging
+            ##print("btc: ", btc_bal) #For debugging
             usd_bal = 0
-            print("usd: ", usd_bal)#For debugging
+            ##print("usd: ", usd_bal)#For debugging
         elif order.order_side == SELL:
             btc_bal = 0
-            print("btc: ", btc_bal)#For debugging
+            ##print("btc: ", btc_bal)#For debugging
             usd_bal = order.amount * last_price
-            print("usd: ", usd_bal)#For debugging
+            ##print("usd: ", usd_bal)#For debugging
 
         del order
         return btc_bal, usd_bal
@@ -488,3 +511,47 @@ class TestAgent_limitOrdersOnly():
         else:
             if self.deltaP != 0:
                 self.deltaP = 0
+
+
+"""
+            /// TestAgent_marketOrdersOnly ///
+"""
+
+
+# Only does market sell. Limit orders are more difficult to handle because the agent has to keep track of their pending limit orders to cancel?? Maybe?
+class EMAAgent_marketOrdersOnly():
+    def __init__(self, ema_short, ema_long, btc_bal=1, usd_bal=0):
+        self.ema_short = ema_short
+        self.ema_long = ema_long
+        self.btc_bal = btc_bal
+        self.usd_bal = usd_bal
+        # self.deltaP = 0
+        # self.previousP = None
+        self.emaX = EMA_Cross_Strategy(ema_short, ema_long)
+
+    def program(self, percept):
+        last_price = percept
+        # if self.previousP is None:
+        #    self.previousP = last_price
+
+        # prev_deltaP = self.deltaP
+        # self.findNewDelta(last_price)
+        signal = self.emaX.evaluate(last_price)
+
+        if (signal == 'BUY'):  # up trend... maybe
+            if self.usd_bal != 0:
+                ##print("AGENT - market buy @ ", last_price)
+                o = Order(BUY, MARKET, last_price, self.usd_bal)
+                return "BUY", o
+        elif (signal == 'SELL'):  # down trend... maybe
+            if self.btc_bal != 0:
+                ##print("AGENT - market sell @ ", last_price)
+                o = Order(SELL, MARKET, last_price, self.btc_bal)
+                return "SELL", o
+
+        return None, None
+
+    def sees(self, response):
+        if response:
+            pass##print("AGENT - received response: ", response)
+
