@@ -1,5 +1,6 @@
 from agent_exchangeSim import *
 
+"""" ORDER TESTING
 d = Order(BUY,LIMIT_POST,14,100)
 a = Order(BUY,LIMIT_POST,11,100)
 c = Order(BUY,LIMIT_POST,9,100)
@@ -25,7 +26,7 @@ stackS.addOrder(w)
 stackS.printTest()
 
 #Expected Output
-"""
+
 Buy Orders
 top of stack
 14
@@ -38,14 +39,14 @@ top of stack
 11
 13
 14
-"""
+
 print("\nDeleting 14 with order_id 1")
 stackS.cancelOrderByID(1)
 stackS.printTest()
 print("\nPopping from top of stack, should delete 9")
 stackS.popOrder()
 stackS.printTest()
-
+"""
 """
 a_m = TestAgent_marketOrdersOnly()
 e = ExchangeSimulator()
@@ -70,49 +71,42 @@ print("usd:",0)
 e.run()
 """
 
-class emaMax:
-    def __init__(self):
-        self.percentage = 0
-        self.ema_short = None
-        self.ema_long = None
-        self.start_bal = None
-        self.end_bal = None
-
-    def apple(self,input_array):
-
-        percentage, ema_short, ema_long, start_bal, end_bal = input_array
-
-        if(percentage > self.percentage):
-            self.percentage = percentage
-            self.ema_short = ema_short
-            self.ema_long = ema_long
-            self.start_bal = start_bal
-            self.end_bal = end_bal
-
-    def results(self):
-        print("EMA Short:", self.ema_short)
-        print("EMA Long:", self.ema_long)
-        print("Result %:", self.percentage)
-        print("Start Balance: $",self.start_bal)
-        print("Final Balance: $",self.end_bal)
 
 
-m = emaMax()
-short = 1
+
+m = PerformanceTracker()
+short = 134
+long = 191
+a = EMAAgent_marketOrdersOnly(short, long)
+e = ExchangeSimulator('bfx_2017-03-25.csv')
+e.setAgent(a)
+e.run()
+x = e.returnFinalResults()
+m.insert_results(x)
+m.get_results()
+
+
+# Bruteforce optimal parameters
+"""
+m = PerformanceTracker()
+short = 100
+short_reset = short
 long = 200
+e = ExchangeSimulator('bfx_2017-03-25.csv')
 while(long >= 2):
+    print("\ntesting long:",long)
     while(short < long):
         a = EMAAgent_marketOrdersOnly(short,long)
-        e = ExchangeSimulator()
+        #e = ExchangeSimulator()
         e.setAgent(a)
         #print("\nRunning Exchange Simulation Testbench")
         e.run()
         x = e.returnFinalResults()
-        m.apple( x )
+        m.insert_results( x )
         short+=1
-    print("long: ",long)
     long -= 1
-    short = 1
+    short = short_reset
 
-print("emaMAX")
-m.results()
+print("Best EMA Parameters")
+m.get_results()
+"""

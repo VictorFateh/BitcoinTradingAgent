@@ -7,14 +7,15 @@ import csv
 import random
 import math
 
-
-def loadCsv(filename):
-    lines = csv.reader(open(filename, "rb"))
+def loadCsv(filename, skip_header=False):
+    f = open(filename, newline='')
+    lines = csv.reader(f)
+    if(skip_header == True):
+        next(lines)
     dataset = list(lines)
     for i in range(len(dataset)):
         dataset[i] = [float(x) for x in dataset[i]]
     return dataset
-
 
 def splitDataset(dataset, splitRatio):
     trainSize = int(len(dataset) * splitRatio)
@@ -55,7 +56,7 @@ def summarize(dataset):
 def summarizeByClass(dataset):
     separated = separateByClass(dataset)
     summaries = {}
-    for classValue, instances in separated.iteritems():
+    for classValue, instances in separated.items():
         summaries[classValue] = summarize(instances)
     return summaries
 
@@ -67,7 +68,7 @@ def calculateProbability(x, mean, stdev):
 
 def calculateClassProbabilities(summaries, inputVector):
     probabilities = {}
-    for classValue, classSummaries in summaries.iteritems():
+    for classValue, classSummaries in summaries.items():
         probabilities[classValue] = 1
         for i in range(len(classSummaries)):
             mean, stdev = classSummaries[i]
@@ -79,7 +80,7 @@ def calculateClassProbabilities(summaries, inputVector):
 def predict(summaries, inputVector):
     probabilities = calculateClassProbabilities(summaries, inputVector)
     bestLabel, bestProb = None, -1
-    for classValue, probability in probabilities.iteritems():
+    for classValue, probability in probabilities.items():
         if bestLabel is None or probability > bestProb:
             bestProb = probability
             bestLabel = classValue
@@ -159,6 +160,7 @@ class rollingStat():
 
 
 # test if both methods give the same results
+"""
 data = [5,6,7,8,9]
 print("testing first functions")
 m = mean(data)
@@ -204,6 +206,7 @@ buy_price.print()
 buy_size.print()
 
 # see different price probabilities
+
 print()
 p = 980
 sum = 0
@@ -213,3 +216,9 @@ while(p >= 900):
     print("probability of ${}: {}".format(p, pp))
     p -= 1
 print("probability sum:",sum)
+
+
+dataset = [[1,20,1], [2,21,0], [3,22,1]]
+separated = separateByClass(dataset)
+print('Separated instances: ',separated)
+"""

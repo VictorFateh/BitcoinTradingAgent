@@ -1,5 +1,7 @@
 import csv, sys, ast
 from ema import *
+from naive_bayes import *
+from random import randint
 #Constants
 MAKER_FEE = 0.001 # 0.1% in decimal form
 TAKER_FEE = 0.002 # 0.2% in decimal form
@@ -115,6 +117,8 @@ class OrderStack:
 """
 
 
+
+
 class ExchangeSimulator:
 
     def __init__(self, testData = 'bfx_2017-03-25.csv'):
@@ -138,7 +142,7 @@ class ExchangeSimulator:
         #self.testData = [5,6,7,8,9,10,9,8,7,6,3,2,1,3,5,7,9,10,10,9,8]
         self.filename = testData
         f = open(self.filename, newline='')
-        self.percepts = csv.reader(f)
+        self.percepts = loadCsv(self.filename, skip_header=True)#csv.reader(f)
 
 
     def setAgent(self,Agent):
@@ -146,36 +150,34 @@ class ExchangeSimulator:
 
     def run(self):
         try:
-            next(self.percepts)#skip header in csv
+
             for percept in self.percepts:
+
                 ltp, sp, ss, bp, bs  = percept
-                #print("price: ", self.current_price)#For debugging
+
                 self.current_price = float(ltp)
                 self.nearest_sell_price = float(sp)
                 self.nearest_sell_size = float(ss)
                 self.nearest_buy_price = float(bp)
                 self.nearest_buy_size = float(bs)
-                #self.current_price = percept # set the current price
-                #self.nearest_buy_price = self.current_price
-                #self.nearest_sell_price = self.current_price
+
                 if(self.initial == None):
                     self.initial = self.current_price
 
-                self.updateDeltaPrice()
+                #self.updateDeltaPrice()
                 self.handle_QueuedOrders()
 
-                request, info = self.Agent.program(self.current_price)
+                request, info = self.Agent.program(percept)
 
-                response = self.handle_AgentRequest(percept, request, info)
+                response = self.handle_AgentRequest(request, info)
 
                 self.Agent.sees(response)
 
-            #self.printFinalResults()
 
         except csv.Error as e:
             sys.exit('file {}, line {}: {}'.format(self.filename, self.percepts.line_num, e))
 
-    def handle_AgentRequest(self, percept, request, info):
+    def handle_AgentRequest(self, request, info):
         if request == "BUY" or request == "SELL":
             ##print("EXCHANGE - got it!")#For debugging
             order = info
@@ -514,44 +516,141 @@ class TestAgent_limitOrdersOnly():
 
 
 """
-            /// TestAgent_marketOrdersOnly ///
+            /// MACHINE LEARNING NAIVE BAYES ///
+        Currently customized for EMA Crossover Strategy
 """
+class ML_Naive_Bayes():
+    def __init__(self):
+        self.summaries = None
+        self.testing_mode = False
+
+        self.prev_order_side = None
+        self.prev_percept = None
+        self.dataset = []
+
+    def add_dataset(self,current_order_side, percept):
+
+        current_percept = list(percept)
+
+        if( self.prev_order_side == BUY and current_order_side == SELL):
+            if(self.prev_percept[3] < current_percept[1]):
+                self.prev_percept.append(1) # decision successful
+            else:
+                self.prev_percept.append(0) # decision failed
+            self.dataset.append(self.prev_percept)
+        elif( self.prev_order_side == SELL and current_order_side == BUY):
+            if(self.prev_percept[1] > current_percept[3]):
+                self.prev_percept.append(1) # decision successful
+            else:
+                self.prev_percept.append(0) # decision failed
+            self.dataset.append(self.prev_percept)
+
+        self.prev_order_side = current_order_side
+        self.prev_percept = current_percept
+
+
+    def print_dataset(self):
+        print(self.dataset)
+
+    def get_dataset(self):
+        return self.dataset
+
+    def start_testing(self):
+
+        self.summaries = summarizeByClass(self.dataset)
+        self.testing_mode = True
+
+    def testing_mode_active(self):
+        return self.testing_mode
+
+    def get_prediction(self, percept):
+        result = predict(self.summaries, percept)
+        return result
 
 
 # Only does market sell. Limit orders are more difficult to handle because the agent has to keep track of their pending limit orders to cancel?? Maybe?
 class EMAAgent_marketOrdersOnly():
     def __init__(self, ema_short, ema_long, btc_bal=1, usd_bal=0):
+        #self.cheat_summaries = {0: [(936.2413333333333, 21.70424147707626), (936.5120000000001, 21.517075345607992), (5.224297451333333, 7.09834636556952), (935.7746666666666, 21.45970405423239), (3.6622183520000005, 4.816210980636395)], 1: [(938.550909090909, 16.045147213126743), (938.7045454545455, 16.156863782081196), (3.16785915, 2.520631304019733), (938.4018181818182, 16.132811793473472), (3.1402736209090913, 3.621571039635933)]}
+
+        self.counter = 0
+        self.training_size = math.floor(10200 * 0.50)
+
+
         self.ema_short = ema_short
         self.ema_long = ema_long
         self.btc_bal = btc_bal
         self.usd_bal = usd_bal
-        # self.deltaP = 0
-        # self.previousP = None
-        self.emaX = EMA_Cross_Strategy(ema_short, ema_long)
+
+        self.EmaX = EMA_Cross_Strategy(ema_short, ema_long)
+        self.ML_Naive_Bayes = ML_Naive_Bayes()
 
     def program(self, percept):
-        last_price = percept
-        # if self.previousP is None:
-        #    self.previousP = last_price
 
-        # prev_deltaP = self.deltaP
-        # self.findNewDelta(last_price)
-        signal = self.emaX.evaluate(last_price)
+        ltp, sp, ss, bp, bs = percept
+        last_trade_price = float(ltp)
+        sell_price = float(sp)
+        sell_size = float(ss)
+        buy_price = float(bp)
+        buy_size = float(bs)
 
-        if (signal == 'BUY'):  # up trend... maybe
+        signal = self.EmaX.evaluate(last_trade_price)
+
+        ##print("price: ", last_trade_price)#For debugging
+        if(self.counter < self.training_size):
+            self.counter += 1
+        elif(self.counter == self.training_size):
+            self.ML_Naive_Bayes.start_testing()
+
+        prediction = 1
+        if(signal and self.ML_Naive_Bayes.testing_mode_active()):
+            prediction = self.ML_Naive_Bayes.get_prediction(percept)
+            #prediction = randint(0,1) #debugging; also baseline test with random prediction
+        if (signal == 'BUY' and prediction == 1):  # up trend... maybe
             if self.usd_bal != 0:
-                ##print("AGENT - market buy @ ", last_price)
-                o = Order(BUY, MARKET, last_price, self.usd_bal)
+                ##print("AGENT - market buy @ ", last_trade_price) #debugging
+                self.ML_Naive_Bayes.add_dataset(BUY, percept)
+                o = Order(BUY, MARKET, last_trade_price, self.usd_bal)
                 return "BUY", o
-        elif (signal == 'SELL'):  # down trend... maybe
+        elif (signal == 'SELL' and prediction == 1):  # down trend... maybe
             if self.btc_bal != 0:
-                ##print("AGENT - market sell @ ", last_price)
-                o = Order(SELL, MARKET, last_price, self.btc_bal)
+                ##print("AGENT - market sell @ ", last_trade_price) #debugging
+                self.ML_Naive_Bayes.add_dataset(SELL, percept)
+                o = Order(SELL, MARKET, last_trade_price, self.btc_bal)
                 return "SELL", o
 
         return None, None
 
     def sees(self, response):
-        if response:
-            pass##print("AGENT - received response: ", response)
+        pass
 
+
+class PerformanceTracker:
+    def __init__(self):
+        self.percentage = -100
+        self.ema_short = None
+        self.ema_long = None
+        self.start_bal = None
+        self.end_bal = None
+
+    def insert_results(self,input_array):
+
+        percentage, ema_short, ema_long, start_bal, end_bal = input_array
+
+
+        if(percentage > self.percentage):
+            self.percentage = percentage
+            self.ema_short = ema_short
+            self.ema_long = ema_long
+            self.start_bal = start_bal
+            self.end_bal = end_bal
+            self.get_results()
+
+
+    def get_results(self):
+        print()
+        print("EMA Short:", self.ema_short)
+        print("EMA Long:", self.ema_long)
+        print("Result %:", self.percentage)
+        print("Start Balance: $",self.start_bal)
+        print("Final Balance: $",self.end_bal)

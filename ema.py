@@ -103,7 +103,54 @@ class EMA_Cross_Strategy:
 
 
 
+class EMA_MinMax_Strategy:
+    def __init__(self,short,long):
+        self.short = Ema(short)
+        self.long = Ema(long)
+        self.prev_areaDiff = None
+        self.prev_state = None
+        self.init_counter = 1
+        self.start_counter = long
+        self.start_evaluate = False
 
+    def calculate(self,current):
+        if(self.prev_areaDiff == None):
+            self.prev_areaDiff = current
+
+        current_areaDiff = self.short.ema(current) - self.long.ema(current)
+        if(self.start_evaluate == False and self.init_counter <= self.start_counter):
+            self.init_counter += 1
+            if(self.init_counter == self.start_counter):
+                self.start_evaluate = True
+
+        signal = None
+
+        if( self.start_evaluate ):
+            #check for new min max
+            if(self.prev_state == 1 and self.prev_areaDiff > current_areaDiff):
+                signal = 'SELL'
+            elif(self.prev_state == -1 and self.prev_areaDiff < current_areaDiff):
+                signal = 'BUY'
+
+            #keep track of previous state slope
+            if(self.prev_areaDiff < current_areaDiff):
+                self.prev_state = 1
+            elif(self.prev_areaDiff > current_areaDiff):
+                self.prev_state = -1
+            else:
+                self.prev_state = 0
+            self.prev_areaDiff = current_areaDiff
+
+
+        return signal
+
+
+
+
+
+    def evaluate(self,current):
+        signal = self.calculate(current)
+        return signal
 
 
 
