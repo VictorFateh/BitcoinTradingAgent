@@ -2,6 +2,7 @@
 # Naive Bayes
 # http://machinelearningmastery.com/naive-bayes-classifier-scratch-python/
 #
+from exchange_constants import *
 
 import csv
 import random
@@ -158,6 +159,58 @@ class rollingStat():
         print('mean:', self.get_meanvalue())
         print('stdv:', self.get_stdev())
 
+"""
+            /// MACHINE LEARNING NAIVE BAYES ///
+        Currently customized for EMA Crossover Strategy
+"""
+
+class ML_Naive_Bayes():
+    def __init__(self):
+        self.summaries = None
+        self.testing_mode = False
+
+        self.prev_order_side = None
+        self.prev_percept = None
+        self.dataset = []
+
+    def add_dataset(self, current_order_side, percept):
+
+        current_percept = list(percept)
+
+        if (self.prev_order_side == BUY and current_order_side == SELL):
+            if (self.prev_percept[3] < current_percept[1]):
+                self.prev_percept.append(1)  # decision successful
+            else:
+                self.prev_percept.append(0)  # decision failed
+            self.dataset.append(self.prev_percept)
+        elif (self.prev_order_side == SELL and current_order_side == BUY):
+            if (self.prev_percept[1] > current_percept[3]):
+                self.prev_percept.append(1)  # decision successful
+            else:
+                self.prev_percept.append(0)  # decision failed
+            self.dataset.append(self.prev_percept)
+
+        self.prev_order_side = current_order_side
+        self.prev_percept = current_percept
+
+    def print_dataset(self):
+        print(self.dataset)
+
+    def get_dataset(self):
+        return self.dataset
+
+    def start_testing(self):
+
+        self.summaries = summarizeByClass(self.dataset)
+        self.testing_mode = True
+
+    def testing_mode_active(self):
+        return self.testing_mode
+
+    def get_prediction(self, percept):
+        result = predict(self.summaries, percept)
+        return result
+
 
 # test if both methods give the same results
 """
@@ -178,7 +231,7 @@ print('sd:',math.sqrt(r2.get_variance()))
 
 # test to see what our data looks like
 print("test to see what our data looks like")
-filename = 'bfx_2017-03-25.csv'
+filename = 'bfx_data/bfx_2017-03-25.csv'
 f = open(filename, newline='')
 percepts = csv.reader(f)
 

@@ -1,4 +1,5 @@
-from agent_exchangeSim import *
+
+from agents import *
 
 """" ORDER TESTING
 d = Order(BUY,LIMIT_POST,14,100)
@@ -77,8 +78,8 @@ e.run()
 m = PerformanceTracker()
 short = 134
 long = 191
-a = EMAAgent_marketOrdersOnly(short, long)
-e = ExchangeSimulator('bfx_2017-03-25.csv')
+a = Agent_MarketOrdersOnly(short, long)
+e = ExchangeSimulator('bfx_data/bfx_2017-03-25.csv')
 e.setAgent(a)
 e.run()
 x = e.returnFinalResults()
@@ -92,11 +93,11 @@ m = PerformanceTracker()
 short = 100
 short_reset = short
 long = 200
-e = ExchangeSimulator('bfx_2017-03-25.csv')
-while(long >= 2):
+e = ExchangeSimulator('bfx_data/bfx_2017-03-25.csv')
+while(long >= short_reset):
     print("\ntesting long:",long)
     while(short < long):
-        a = EMAAgent_marketOrdersOnly(short,long)
+        a = Agent_MarketOrdersOnly(short,long)
         #e = ExchangeSimulator()
         e.setAgent(a)
         #print("\nRunning Exchange Simulation Testbench")
