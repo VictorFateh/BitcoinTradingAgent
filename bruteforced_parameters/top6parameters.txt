@@ -1,0 +1,42 @@
+EMA Short: 132
+EMA Long: 196
+Result %: 3.52
+Start Balance: $ 907.31
+Final Balance: $ 939.2
+
+
+EMA Short: 132
+EMA Long: 197
+Result %: 3.44
+Start Balance: $ 907.31
+Final Balance: $ 938.48
+
+
+EMA Short: 129
+EMA Long: 199
+Result %: 3.36
+Start Balance: $ 907.31
+Final Balance: $ 937.81
+
+
+EMA Short: 128
+EMA Long: 200
+Result %: 3.16
+Start Balance: $ 907.31
+Final Balance: $ 936.0
+
+
+EMA Short: 125
+EMA Long: 200
+Result %: 2.14
+Start Balance: $ 907.31
+Final Balance: $ 926.77
+
+
+EMA Short: 123
+EMA Long: 200
+Result %: 1.71
+Start Balance: $ 907.31
+Final Balance: $ 922.78
+
+
