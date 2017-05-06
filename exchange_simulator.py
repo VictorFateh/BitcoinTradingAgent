@@ -115,7 +115,7 @@ class OrderStack:
 
 class ExchangeSimulator:
 
-    def __init__(self, testData = 'bfx_2017-03-25.csv'):
+    def __init__(self, testData = 'bfx_data/bfx_2017-03-25.csv'):
         self.Agent = []
 
         self.buyOrders = OrderStack(BUY)
@@ -309,6 +309,11 @@ class ExchangeSimulator:
 
         return None
     """
+    def returnPercentageResults(self):
+        finalValue = round(self.Agent.btc_bal * self.current_price + self.Agent.usd_bal, 8)
+        results = finalValue / self.initial
+        return round(results*100-100,2)
+
     def returnFinalResults(self):
         finalValue = round(self.Agent.btc_bal * self.current_price + self.Agent.usd_bal, 8)
         results = finalValue / self.initial
@@ -426,6 +431,9 @@ class PerformanceTracker:
             self.end_bal = end_bal
             self.get_results()
 
+
+    def get_percent_return(self):
+        return self.percentage
 
     def get_results(self):
         print()
