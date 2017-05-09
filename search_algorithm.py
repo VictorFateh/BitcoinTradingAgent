@@ -6,7 +6,7 @@ import sys
 # This function will initially accept and randomly chosen set of ema values
 # It wil then find next permutations and reference our precomputed csv to see if return is maximized
 # accepts a list of the two initial parameters
-def ema_optimal_parameter_search(ema_period, df=None):
+def ema_optimal_parameter_search(ema_period, ema_max=None, df=None):
     #sys.setrecursionlimit(2500)
     ema_short = ema_period[0]
     ema_long = ema_period[1]
@@ -31,8 +31,8 @@ def ema_optimal_parameter_search(ema_period, df=None):
         print("we do not have precomputed values for this")
         return
 
-    ema_max = df.iloc[200-ema_long][ema_short-99]#from csv file
-    print(ema_max,"ema_max", "for values",ema_short,ema_long)
+    if ema_max is None:
+        ema_max = df.iloc[200-ema_long][ema_short-99]#from csv file
 
     # take the two randomly chosen ema periods and calculate the return of the algorithm based on those twovalues
     # Using a hill climbing algorithm we will find the optimal, ema short/long periods for which the algorithm to test over
@@ -42,36 +42,43 @@ def ema_optimal_parameter_search(ema_period, df=None):
     # 2,6   2,4     1,5     1,4     3,4     1,6     3,6     
     next_emas = {}
     if ema_short > 100:
+        #case 1
         next_emas[(ema_short-1, ema_long)] = df.iloc[200-ema_long][ema_short-1-99]
         if ema_short < ema_long - 1:
-            next_emas[(ema_short-1, ema_long-1 )] = df.iloc[200-ema_long-1][ema_short-1-99] 
-        if ema_long+1 < 200:
-            next_emas[(ema_short-1,ema_long+1)] = df.iloc[200-ema_long+1][ema_short-1-99]
+            #case 2
+            next_emas[(ema_short-1, ema_long-1 )] = df.iloc[200-ema_long+1][ema_short-1-99] 
+        if ema_long-1 < 200:
+            #case 3
+            next_emas[(ema_short-1,ema_long-1)] = df.iloc[200-ema_long-1][ema_short-1-99]
     if ema_short + 1 < ema_long:
-        print(200-ema_long,ema_short+1-99)
+        #case 4
         next_emas[(ema_short+1, ema_long)] = df.iloc[200-ema_long][ema_short+1-99]
         if ema_long +1 <= 200:
-            next_emas[(ema_short+1, ema_long+1)] = df.iloc[200-ema_long+1][ema_short+1-99]
+            #case 5
+            next_emas[(ema_short+1, ema_long-1)] = df.iloc[200-ema_long-1][ema_short+1-99]
+    if ema_long - 1 > ema_short+1:
+        next_emas[(ema_short+1, ema_long-1)] = df.iloc[200-ema_long+1][ema_short+1-99]
     if ema_long + 1 <= 200:
-        next_emas[(ema_short, ema_long+1)] = df.iloc[200-ema_long+1][ema_short-99]
+        #case 6
+        next_emas[(ema_short, ema_long-1)] = df.iloc[200-ema_long-1][ema_short-99]
         if ema_long-1 > ema_short:
-            next_emas[(ema_short, ema_long-1)] = df.iloc[200-ema_long-1][ema_short-99]
+            #case 7
+            next_emas[(ema_short, ema_long-1)] = df.iloc[200-ema_long+1][ema_short-99]
 
     #populate dictionary keys with values of return per ema periods
     for key, value in next_emas.items():
-        print("testing new ema",key,"with value", value)
         if value > ema_max:
-            print("value is larger than ema_max value:", value, ema_max)
             ema_max = value
             # since key is a tuple, then access short and long accordingly
             new_ema_short = key[0]
             new_ema_long = key[1]
 
     # if this is the case then a local maximum has been found and is returned in a tuple
-    print(new_ema_short, ema_short, new_ema_long, ema_long)
     if new_ema_short == ema_short and new_ema_long == ema_long:
+        print("::::::final value has been found:::::::")
+        print(ema_short,ema_long)
         return (ema_short, ema_long)
     else:
-        return ema_optimal_parameter_search((new_ema_short, new_ema_long), df)
+        return ema_optimal_parameter_search((new_ema_short, new_ema_long), ema_max, df)
 
 ema_optimal_parameter_search((100, 150))
