@@ -1,3 +1,4 @@
+import random
 import pandas
 import csv
 import sys
@@ -81,4 +82,11 @@ def ema_optimal_parameter_search(ema_period, ema_max=None, df=None):
     else:
         return ema_optimal_parameter_search((new_ema_short, new_ema_long), ema_max, df)
 
-ema_optimal_parameter_search((100, 150))
+while True:
+    random_short = random.randint(100,199)
+    random_long = random.randint(101,200)
+    if random_short < random_long:
+        break
+
+print(random_short, random_long)
+ema_optimal_parameter_search((random_short, random_long))
