@@ -22,7 +22,7 @@ def ema_optimal_parameter_search(ema_period, ema_max=None, df=None):
         print("ema short must be less than ema long or a crossover will never happen")
     # Get the return for the currently passed ema parameters
     if df is None:
-        df = pandas.read_csv("bruteforced_parameters.csv")
+        df = pandas.read_csv("bruteforced_parameters/bruteforced_data.csv")
     # 0 = 200 on pandas datframe
     # access with df[long][short]
     #200 - ema value long df[0] gives first row of 200

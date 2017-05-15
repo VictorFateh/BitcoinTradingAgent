@@ -77,7 +77,7 @@ fl.close()
 
 import csv
 
-fl = open('bruteforced_parameters.csv', 'w',newline='')
+fl = open('ema_strategy_only_parameters_uptrend.csv', 'w',newline='')
 writer = csv.writer(fl)
 
 header = ['LongV Short->']+ list( range(100,200))

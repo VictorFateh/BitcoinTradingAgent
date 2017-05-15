@@ -7,7 +7,7 @@ from random import randint
 # Only does market sell. Limit orders are more difficult to handle because the agent has to keep track of their pending limit orders to cancel?? Maybe?
 class Agent_MarketOrdersOnly():
     def __init__(self, ema_short, ema_long, btc_bal=1, usd_bal=0):
-        #self.cheat_summaries = { 0: [(936.2413333333333, 21.70424147707626), (936.5120000000001, 21.517075345607992), (5.224297451333333, 7.09834636556952), (935.7746666666666, 21.45970405423239), (3.6622183520000005, 4.816210980636395)], 1: [(938.550909090909, 16.045147213126743), (938.7045454545455, 16.156863782081196), (3.16785915, 2.520631304019733), (938.4018181818182, 16.132811793473472), (3.1402736209090913, 3.621571039635933)]}
+
 
         self.counter = 0
         self.training_size = math.floor(10200 * 0.50)
@@ -35,9 +35,11 @@ class Agent_MarketOrdersOnly():
         buy_price = float(bp)
         buy_size = float(bs)
 
+
         signal = self.Strategy_Algorithm.evaluate(last_trade_price)
 
         ##print("price: ", last_trade_price)#For debugging
+
         if(self.counter < self.training_size):
             self.counter += 1
         elif(self.counter == self.training_size):

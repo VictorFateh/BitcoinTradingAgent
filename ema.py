@@ -7,7 +7,7 @@ style.use('ggplot')
 #style.use('dark_background')
 
 
-df = pd.read_csv('bfx_data/bfx_2017-03-25.csv')
+df = pd.read_csv('bfx_data/bfx_2017-03-25_reversed.csv')
 #df["mean"] = df["last_price"]
 
 

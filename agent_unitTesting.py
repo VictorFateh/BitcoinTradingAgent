@@ -29,8 +29,8 @@ e.run()
 
 
 m = PerformanceTracker()
-short = 134
-long = 191
+short = 225
+long = 231
 a = Agent_MarketOrdersOnly(short, long)
 e = ExchangeSimulator('bfx_data/bfx_2017-03-25.csv')
 e.setAgent(a)
@@ -41,11 +41,35 @@ m.get_results()
 
 # Bruteforce optimal parameters
 """
+print("Uptrend_Results")
 m = PerformanceTracker()
 short = 100
 short_reset = short
-long = 200
+long = 250
 e = ExchangeSimulator('bfx_data/bfx_2017-03-25.csv')
+while(long >= short_reset):
+    print("\ntesting long:",long)
+    while(short < long):
+        a = Agent_MarketOrdersOnly(short,long)
+        #e = ExchangeSimulator()
+        e.setAgent(a)
+        #print("\nRunning Exchange Simulation Testbench")
+        e.run()
+        x = e.returnFinalResults()
+        m.insert_results( x )
+        short+=1
+    long -= 1
+    short = short_reset
+
+print("Best EMA Parameters")
+m.get_results()
+
+print("Downtrend_Results")
+m = PerformanceTracker()
+short = 100
+short_reset = short
+long = 250
+e = ExchangeSimulator('bfx_data/bfx_2017-03-25_reversed.csv')
 while(long >= short_reset):
     print("\ntesting long:",long)
     while(short < long):
