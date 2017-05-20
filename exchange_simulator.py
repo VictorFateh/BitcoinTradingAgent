@@ -4,7 +4,7 @@ from exchange_constants import *
 
 
 def loadCsv(filename, skip_header=False):
-    f = open(filename, newline='')
+    f = open(filename)
     lines = csv.reader(f)
     if(skip_header == True):
         next(lines)
@@ -98,7 +98,10 @@ class OrderStack:
         return status, amount
 
     def printTest(self): #For debugging
-        print("Buy Orders") if self.order_side == BUY else print("Sell Orders")
+        if self.order_side == BUY:
+            print("Buy Orders")
+        else:
+            print("Sell Orders")
         print("top of stack")
         for order in reversed(self.orders):
             print(order.target_price)
@@ -135,7 +138,7 @@ class ExchangeSimulator:
         #temporarily used for simplified development testing
         #self.testData = [5,6,7,8,9,10,9,8,7,6,3,2,1,3,5,7,9,10,10,9,8]
         self.filename = testData
-        f = open(self.filename, newline='')
+        f = open(self.filename)
         self.percepts = loadCsv(self.filename, skip_header=True)#csv.reader(f)
 
 
@@ -148,7 +151,6 @@ class ExchangeSimulator:
             for percept in self.percepts:
 
                 ltp, sp, ss, bp, bs  = percept
-
                 self.current_price = float(ltp)
                 self.nearest_sell_price = float(sp)
                 self.nearest_sell_size = float(ss)

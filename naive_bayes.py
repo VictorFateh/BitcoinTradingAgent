@@ -154,7 +154,7 @@ class rollingStat():
     def get_stdev(self):
         return math.sqrt( self.get_variance() )
 
-    def print(self):
+    def print_stat(self):
         print(self.data_type)
         print('mean:', self.get_meanvalue())
         print('stdv:', self.get_stdev())
