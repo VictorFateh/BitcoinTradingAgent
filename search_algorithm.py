@@ -77,7 +77,9 @@ def ema_optimal_parameter_search(ema_period, ema_max=None, df=None):
     # if this is the case then a local maximum has been found and is returned in a tuple
     if new_ema_short == ema_short and new_ema_long == ema_long:
         print("::::::final value has been found:::::::")
-        print(ema_short,ema_long)
+        print("return %{}".format(ema_max))
+        print("short period ema: {}".format(ema_short))
+        print("long period ema: {}".format(ema_long))
         return (ema_short, ema_long)
     else:
         return ema_optimal_parameter_search((new_ema_short, new_ema_long), ema_max, df)
